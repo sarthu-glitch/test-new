@@ -1,11 +1,11 @@
 name: Deployment On EKS Cluster
 
-on: 
-  push: 
-     branches: ['main']
+on:
   pull_request:
-     branches: ['main']
+    types:
+      - opened
   workflow_dispatch:
+  
 permissions:
   id-token: write
   contents: read     

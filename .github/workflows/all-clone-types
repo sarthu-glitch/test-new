@@ -1,0 +1,37 @@
+# .github/workflows/clone-multiple-repos.yml
+name: Clone Multiple Repos
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  clone:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout current repo
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      # Clone a public repository
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+        with:
+          repository: other-org/public-repo
+          path: public-repo
+
+      # Clone a private repo from a different org using PAT
+      - name: Checkout cross-org private repo
+        uses: actions/checkout@v4
+        with:
+          repository: other-org/private-repo
+          token: ${{ secrets.PAT_TOKEN }}
+          path: private-repo
+
+      # Clone a private repo within same org using GITHUB_TOKEN
+      - name: Checkout same-org private repo
+        uses: actions/checkout@v4
+        with:
+          repository: my-org/another-private-repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: same-org-repo

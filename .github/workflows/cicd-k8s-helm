@@ -1,0 +1,62 @@
+name: Deploy to EKS Cluster
+
+on:
+  workflow_dispatch
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy_on_cluster:
+    name: Deploy Application on EKS
+    runs-on: [self-hosted, linux, x64]
+
+    steps:
+      # Step 1: Checkout the current repository
+      - name: Checkout current repository
+        uses: actions/checkout@v3
+
+      # Step 2: Clone private Helm chart repository from another organization
+      - name: Clone private Helm repo (cross-org)
+        uses: actions/checkout@v4
+        with:
+          repository: other-org/private-repo
+          token: ${{ secrets.PAT_TOKEN }}
+          path: private-repo
+
+      # Step 3: Install kubectl
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.27.1'
+        id: install-kubectl
+
+      # Step 4: Install Helm
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: 'latest'
+        id: install-helm
+
+      # Step 5: Configure AWS credentials via OIDC
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          aws-region: ap-south-1
+
+      # Step 6: Update kubeconfig for EKS cluster
+      - name: Update kubeconfig for EKS
+        run: |
+          mkdir -p $HOME/.kube
+          echo "$KUBE_CONFIG_DATA" | base64 -d > $HOME/.kube/config
+          aws eks update-kubeconfig --region ap-south-1 --name Test
+
+      # Step 7: Deploy Helm chart
+      - name: Deploy Helm chart
+        run: |
+          helm upgrade --install my-app ./private-repo/my-chart \
+            --namespace my-namespace \
+            --create-namespace \
+            --values ./private-repo/my-chart/values.yaml
